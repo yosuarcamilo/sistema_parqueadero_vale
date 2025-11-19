@@ -1,0 +1,58 @@
+-- 0. Tabla de Usuarios
+CREATE TABLE usuario (
+    Id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    Nombre_usuario VARCHAR(50) NOT NULL,
+    contraseña VARCHAR(255) NOT NULL
+);
+
+-- 1. Tabla de Motos
+CREATE TABLE motos (
+    IdMoto INT AUTO_INCREMENT PRIMARY KEY,
+    Placa VARCHAR(20) NOT NULL UNIQUE,
+    Marca VARCHAR(50) NOT NULL,
+    Modelo VARCHAR(20) NOT NULL,
+    Color VARCHAR(30)
+);
+
+-- 2. Tabla de Propietarios
+CREATE TABLE propietarios (
+    IdPropietario INT AUTO_INCREMENT PRIMARY KEY,
+    NombreCompleto VARCHAR(100) NOT NULL,
+    Direccion VARCHAR(150),
+    Telefono VARCHAR(15),
+    CorreoElectronico VARCHAR(100)
+);
+
+-- 3. Tabla de Registros
+CREATE TABLE registros (
+    IdRegistro INT AUTO_INCREMENT PRIMARY KEY,
+    IdMoto INT NOT NULL,
+    IdPropietario INT NOT NULL,
+    FechaHoraEntrada DATETIME NOT NULL,
+    FechaHoraSalida DATETIME,
+    Estado ENUM('activo','inactivo') NOT NULL,
+    FOREIGN KEY (IdMoto) REFERENCES motos(IdMoto),
+    FOREIGN KEY (IdPropietario) REFERENCES propietarios(IdPropietario)
+);
+
+-- 4. Tabla de Pagos
+CREATE TABLE pagos (
+    IdPago INT AUTO_INCREMENT PRIMARY KEY,
+    IdRegistro INT NOT NULL,
+    Monto DECIMAL(10,2) NOT NULL,
+    FechaHoraPago DATETIME NOT NULL,
+    MetodoPago ENUM('efectivo','tarjeta','transferencia','otro') NOT NULL,
+    FOREIGN KEY (IdRegistro) REFERENCES registros(IdRegistro)
+);
+
+-- 5. Tabla Ticket
+CREATE TABLE ticket (
+    IdTicket INT AUTO_INCREMENT PRIMARY KEY,
+    IdPago INT NOT NULL,
+    CodigoTicket VARCHAR(50) NOT NULL UNIQUE,
+    FechaHoraEmision DATETIME NOT NULL,
+    Detalle TEXT,
+    Estado ENUM('activo','anulado','impreso','otro') NOT NULL,
+    FOREIGN KEY (IdPago) REFERENCES pagos(IdPago)
+);
+

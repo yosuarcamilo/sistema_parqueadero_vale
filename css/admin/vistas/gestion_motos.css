@@ -1,0 +1,70 @@
+
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 20px; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 160px; gap: 10px; align-items: center; }
+    .row input { width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; }
+    .btn { padding: 10px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn-primary { background: #15ad4d; color: #fff; }
+    .btn-secondary { background: #e0e0e0; color: #333; }
+    .btn-danger { background: #e53935; color: #fff; }
+    .toolbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .search { display: flex; gap: 8px; }
+    .search input { padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 6px; width: 260px; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { padding: 12px 10px; border-bottom: 1px solid #f0f0f0; text-align: left; }
+    .table th { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+    .pagination { display: flex; gap: 6px; margin-top: 14px; }
+    .pagination a { padding: 8px 12px; background: #fff; border: 1px solid #ddd; border-radius: 6px; text-decoration: none; color: #333; }
+    .pagination .active { background: #15ad4d; color: #fff; border-color: #15ad4d; }
+    .msg { padding: 12px 14px; border-radius: 8px; margin-bottom: 12px; }
+    .msg.success { background: #e8f5e9; border: 1px solid #c8e6c9; color: #2e7d32; }
+    .msg.error { background: #ffebee; border: 1px solid #ffcdd2; color: #c62828; }
+    
+    /* Estilos para el modal de edición */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.45);
+        z-index: 999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        width: min(720px, 95vw);
+        box-shadow: 0 10px 30px rgba(0,0,0,.2);
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        color: #15ad4d;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+    }
