@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 require_once __DIR__ . '/../db/conexion.php';
@@ -25,16 +24,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nombre_usuario']) && 
             $_SESSION['logged_in'] = true;
             $_SESSION['usuario_id'] = $user['Id_usuario'];
             $_SESSION['usuario'] = $user['Nombre_usuario'];
-            header('Location: ../admin/index.php');
+            header('Location: /parqueadero_vale/admin/index.php');
             exit();
         } else {
             $_SESSION['mensaje_error'] = 'Usuario o contraseña incorrectos.';
-            header('Location: ../index.php');
+            header('Location: /parqueadero_vale/index.php');
             exit();
         }
     } else {
         $_SESSION['mensaje_error'] = 'Usuario o contraseña incorrectos.';
-        header('Location: ../index.php');
+        header('Location: /parqueadero_vale/index.php');
         exit();
     }
     $stmt->close();
@@ -42,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nombre_usuario']) && 
 
 // Verificar si el usuario ya está logueado
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
-    header('Location: ../admin/index.php');
+    header('Location: /parqueadero_vale/admin/index.php');
     exit();
 }
 ?>

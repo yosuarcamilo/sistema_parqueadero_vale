@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Imprimir Ticket con QZ Tray</title>
+</head>
+<body>
+
+<button id="btnConectar">Conectar QZ Tray</button>
+<button id="btnImprimir">Imprimir Ticket</button>
+
+<script src="qz-tray.js"></script>
+
+<script>
+    console.log("Script qz-tray.js cargado");
+    console.log("Objeto qz:", qz);
+
+    // Botón conectar
+    document.getElementById("btnConectar").onclick = function () {
+        qz.websocket.connect()
+            .then(() => {
+                console.log("Conectado correctamente");
+                alert("🟢 Conectado con QZ Tray");
+            })
+            .catch(err => console.error(err));
+    };
+
+    // Botón imprimir ticket
+    document.getElementById("btnImprimir").onclick = function () {
+
+        if (!qz.websocket.isActive()) {
+            alert("Conéctate primero");
+            return;
+        }
+
+        qz.printers.find("POS-80-Series")
+            .then(printer => {
+                let config = qz.configs.create(printer);
+
+                let data = [
+    "\x1B\x40", // reset
+    "     *** PRUEBA TICKET ***\n",
+    "Impresion larga de prueba\n",
+    "----------------------------\n",
+    "Producto A        $10.000\n",
+    "Producto B        $8.500\n",
+    "Producto C        $6.200\n",
+    "----------------------------\n",
+    "TOTAL:           $24.700\n",
+    "\n\n\n\n\n\n\n\n\n\n", // <<< espacio extra aprox 10 cm
+    "Gracias por su compra!\n",
+    "\n\n\n",
+    "\x1D\x56\x01"   // CUT PAPER
+];
+
+
+                qz.print(config, data)
+                    .then(() => alert("🟢 TICKET IMPRESO"))
+                    .catch(err => alert("❌ ERROR: " + err));
+            });
+    };
+</script>
+
+</body>
+</html>

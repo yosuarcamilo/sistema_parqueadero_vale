@@ -44,6 +44,9 @@ if ($result) {
     <div class="msg error">✗ <?php echo htmlspecialchars($_SESSION['mensaje_error']); unset($_SESSION['mensaje_error']); ?></div>
 <?php endif; ?>
 
+<!-- Controles de QZ Tray -->
+<?php include 'impresion_qztray.php'; ?>
+
 <div class="grid">
     <!-- Formulario de Entrada -->
     <div class="card">
@@ -163,6 +166,10 @@ if ($result) {
     const selectedMotoIdInput = document.getElementById('selected-moto-id');
     const submitButton = document.getElementById('submit-entrada');
     
+    // Variables para almacenar datos de tickets
+    let ultimoTicketEntrada = null;
+    let ultimoTicketSalida = null;
+    
     // Función para filtrar motos
     function filterMotos(query) {
         if (!query) return [];
@@ -273,6 +280,166 @@ if ($result) {
         actualizarTiempos();
         setInterval(actualizarTiempos, 1000);
     });
+    
+    // Función para imprimir ticket usando QZ Tray
+    function imprimirTicketQZ(datos) {
+        // Verificar si QZ Tray está disponible y conectado
+        if (typeof qz === 'undefined' || !qz.websocket.isActive()) {
+            console.warn("QZ Tray no está disponible o no está conectado");
+            return Promise.resolve(false);
+        }
+        
+        // Verificar si la impresora está configurada
+        if (!window.printer) {
+            console.warn("No se ha encontrado la impresora");
+            return Promise.resolve(false);
+        }
+        
+        try {
+            let config = qz.configs.create(window.printer);
+            
+            let data = [];
+            
+            if (datos.tipo === 'entrada') {
+                // Formato de ticket de entrada
+                data = [
+                    "\x1B\x40", // reset
+                    "\x1B\x61\x01", // center align
+                    "\x1B\x45\x01", // bold on
+                    "\x1D\x21\x11", // double height and width
+                    "PARQUEADERO V.S\n",
+                    "\x1B\x45\x00", // bold off
+                    "\x1D\x21\x00", // normal size
+                    "**************************\n",
+                    "TICKET DE ENTRADA\n",
+                    "**************************\n",
+                    "\x1B\x61\x00", // left align
+                    "\n",
+                    "FECHA/HORA: " + datos.fecha_hora + "\n",
+                    "PLACA: " + datos.placa + "\n",
+                    "MARCA: " + datos.marca + "\n",
+                    "MODELO: " + datos.modelo + "\n",
+                    "COLOR: " + datos.color + "\n",
+                    "\n",
+                    "PROPIETARIO: " + datos.propietario + "\n",
+                    "TELEFONO: " + datos.telefono + "\n",
+                    "DIRECCION: " + datos.direccion + "\n",
+                    "\n",
+                    "ID REGISTRO: " + datos.id_registro + "\n",
+                    "\n",
+                    "\x1B\x61\x01", // center align
+                    "**************************\n",
+                    "GRACIAS POR SU VISITA\n",
+                    "**************************\n",
+                    "\n\n\n\n\n", // feed paper
+                    "\x1D\x56\x01"   // cut paper
+                ];
+            } else if (datos.tipo === 'salida') {
+                // Formato de ticket de salida
+                data = [
+                    "\x1B\x40", // reset
+                    "\x1B\x61\x01", // center align
+                    "\x1B\x45\x01", // bold on
+                    "\x1D\x21\x11", // double height and width
+                    "PARQUEADERO V.S\n",
+                    "\x1B\x45\x00", // bold off
+                    "\x1D\x21\x00", // normal size
+                    "**************************\n",
+                    "TICKET DE SALIDA\n",
+                    "**************************\n",
+                    "\x1B\x61\x00", // left align
+                    "\n",
+                    "FECHA/HORA ENTRADA: " + datos.fecha_entrada + "\n",
+                    "FECHA/HORA SALIDA: " + datos.fecha_salida + "\n",
+                    "TIEMPO: " + datos.tiempo + "\n",
+                    "\n",
+                    "PLACA: " + datos.placa + "\n",
+                    "MARCA: " + datos.marca + "\n",
+                    "MODELO: " + datos.modelo + "\n",
+                    "\n",
+                    "PROPIETARIO: " + datos.propietario + "\n",
+                    "\n",
+                    "METODO DE PAGO: " + datos.metodo_pago.toUpperCase() + "\n",
+                    "\x1B\x45\x01", // bold on
+                    "\x1D\x21\x11", // double height and width
+                    "TOTAL A PAGAR: $" + parseFloat(datos.monto).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "\n",
+                    "\x1B\x45\x00", // bold off
+                    "\x1D\x21\x00", // normal size
+                    "\n",
+                    "ID PAGO: " + datos.id_pago + "\n",
+                    "ID REGISTRO: " + datos.id_registro + "\n",
+                    "\n",
+                    "\x1B\x61\x01", // center align
+                    "**************************\n",
+                    "GRACIAS POR SU VISITA\n",
+                    "**************************\n",
+                    "\n\n\n\n\n", // feed paper
+                    "\x1D\x56\x01"   // cut paper
+                ];
+            }
+            
+            return qz.print(config, data)
+                .then(() => {
+                    console.log("Ticket impreso correctamente");
+                    return true;
+                })
+                .catch(err => {
+                    console.error("Error al imprimir ticket:", err);
+                    return false;
+                });
+        } catch (err) {
+            console.error("Error general al imprimir ticket:", err);
+            return Promise.resolve(false);
+        }
+    }
+    
+    // Función para imprimir ticket de entrada automáticamente
+    function imprimirTicketEntradaAutomatico(datos) {
+        // Intentar imprimir el ticket automáticamente
+        imprimirTicketQZ(datos)
+            .then(resultado => {
+                if (resultado) {
+                    Swal.fire({
+                        title: '¡Éxito!',
+                        text: 'Entrada registrada e impresión automática del ticket',
+                        icon: 'success',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Advertencia',
+                        text: 'Entrada registrada pero no se pudo imprimir el ticket automáticamente. Verifique la conexión con QZ Tray.',
+                        icon: 'warning',
+                        confirmButtonText: 'Aceptar'
+                    });
+                }
+            });
+    }
+    
+    // Función para imprimir ticket de salida automáticamente
+    function imprimirTicketSalidaAutomatico(datos) {
+        // Intentar imprimir el ticket automáticamente
+        imprimirTicketQZ(datos)
+            .then(resultado => {
+                if (resultado) {
+                    Swal.fire({
+                        title: '¡Éxito!',
+                        text: 'Salida registrada e impresión automática del ticket',
+                        icon: 'success',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Advertencia',
+                        text: 'Salida registrada pero no se pudo imprimir el ticket automáticamente. Verifique la conexión con QZ Tray.',
+                        icon: 'warning',
+                        confirmButtonText: 'Aceptar'
+                    });
+                }
+            });
+    }
     
     function registrarSalida(idRegistro) {
         // En una implementación real, aquí se cargarían los detalles del registro
@@ -387,15 +554,26 @@ if ($result) {
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        Swal.fire({
-                            title: '¡Éxito!',
-                            text: data.message,
-                            icon: 'success',
-                            showConfirmButton: false,
-                            timer: 1500
-                        }).then(() => {
-                            window.location.reload();
-                        });
+                        // Intentar imprimir ticket automáticamente si hay datos
+                        if (data.ticket_data) {
+                            // Imprimir ticket automáticamente
+                            imprimirTicketEntradaAutomatico(data.ticket_data);
+                            
+                            // Recargar la página después de un breve retraso
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        } else {
+                            Swal.fire({
+                                title: '¡Éxito!',
+                                text: data.message,
+                                icon: 'success',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        }
                     } else {
                         Swal.fire({
                             title: 'Error',
@@ -444,15 +622,28 @@ if ($result) {
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        Swal.fire({
-                            title: '¡Éxito!',
-                            text: data.message,
-                            icon: 'success',
-                            showConfirmButton: false,
-                            timer: 1500
-                        }).then(() => {
-                            window.location.reload();
-                        });
+                        // Intentar imprimir ticket automáticamente si hay datos
+                        if (data.ticket_data) {
+                            // Imprimir ticket automáticamente
+                            imprimirTicketSalidaAutomatico(data.ticket_data);
+                            
+                            // Cerrar modal y recargar la página después de un breve retraso
+                            closeSalidaModal();
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        } else {
+                            Swal.fire({
+                                title: '¡Éxito!',
+                                text: data.message,
+                                icon: 'success',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                closeSalidaModal();
+                                window.location.reload();
+                            });
+                        }
                     } else {
                         Swal.fire({
                             title: 'Error',

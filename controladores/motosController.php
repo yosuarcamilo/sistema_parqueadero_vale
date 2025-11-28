@@ -9,6 +9,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 require_once __DIR__ . '/../db/conexion.php';
 require_once __DIR__ . '/../librerias/ImpresionTicket.php';
+require_once __DIR__ . '/../librerias/ImpresionQZTray.php';
 
 function redirect_with($type, $message) {
     $_SESSION[$type] = $message;
@@ -275,10 +276,11 @@ try {
         $moto = $res->fetch_assoc();
         $stmt->close();
         
-        // Imprimir ticket de entrada
+        // Preparar datos para la respuesta AJAX
+        $datos_ticket = null;
         if ($moto) {
-            $impresion = new ImpresionTicket();
             $datos_ticket = [
+                'tipo' => 'entrada',
                 'placa' => $moto['Placa'] ?? 'N/A',
                 'marca' => $moto['Marca'] ?? 'N/A',
                 'modelo' => $moto['Modelo'] ?? 'N/A',
@@ -286,16 +288,18 @@ try {
                 'propietario' => $moto['NombrePropietario'] ?? 'N/A',
                 'telefono' => $moto['TelefonoPropietario'] ?? 'N/A',
                 'direccion' => $moto['DireccionPropietario'] ?? 'N/A',
-                'id_registro' => $id_registro
+                'id_registro' => $id_registro,
+                'fecha_hora' => date('d/m/Y H:i:s')
             ];
-            
-            // Intentar imprimir el ticket
-            $impresion->imprimirTicketEntrada($datos_ticket);
         }
         
         $success_msg = 'Entrada registrada correctamente.';
         if ($is_ajax) {
-            send_json_response(['status' => 'success', 'message' => $success_msg]);
+            send_json_response([
+                'status' => 'success', 
+                'message' => $success_msg,
+                'ticket_data' => $datos_ticket
+            ]);
         }
         redirect_with('mensaje_exito', $success_msg);
     }
@@ -388,16 +392,17 @@ try {
         $stmt->close();
         
         // Calcular tiempo transcurrido
+        $datos_ticket = null;
         if ($registro) {
             $entrada = new DateTime($registro['FechaHoraEntrada']);
             $salida = new DateTime($registro['FechaHoraSalida']);
             $intervalo = $entrada->diff($salida);
             $tiempo = $intervalo->format('%H:%I:%S');
             
-            // Imprimir ticket de salida
-            $impresion = new ImpresionTicket();
             $datos_ticket = [
+                'tipo' => 'salida',
                 'fecha_entrada' => date('d/m/Y H:i', strtotime($registro['FechaHoraEntrada'])),
+                'fecha_salida' => date('d/m/Y H:i', strtotime($registro['FechaHoraSalida'])),
                 'tiempo' => $tiempo,
                 'placa' => $registro['Placa'] ?? 'N/A',
                 'marca' => $registro['Marca'] ?? 'N/A',
@@ -408,14 +413,15 @@ try {
                 'id_pago' => $id_pago,
                 'id_registro' => $id_registro
             ];
-            
-            // Intentar imprimir el ticket
-            $impresion->imprimirTicketSalida($datos_ticket);
         }
         
         $success_msg = 'Salida y pago registrados correctamente.';
         if ($is_ajax) {
-            send_json_response(['status' => 'success', 'message' => $success_msg]);
+            send_json_response([
+                'status' => 'success', 
+                'message' => $success_msg,
+                'ticket_data' => $datos_ticket
+            ]);
         }
         redirect_with('mensaje_exito', $success_msg);
     }
