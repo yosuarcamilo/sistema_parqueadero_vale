@@ -102,8 +102,8 @@ if ($result) {
                                     </div>
                                 </td>
                                 <td>
-                                    <button class="btn btn-success" onclick="registrarSalida(<?php echo $moto['IdRegistro']; ?>)">Salida</button>
-                                    <button class="btn btn-danger" onclick="eliminarRegistro(<?php echo $moto['IdRegistro']; ?>)">Eliminar</button>
+                                    <button class="btn btn-success" onclick="window.registrarSalida(<?php echo $moto['IdRegistro']; ?>)">Salida</button>
+                                    <button class="btn btn-danger" onclick="window.eliminarRegistro(<?php echo $moto['IdRegistro']; ?>)">Eliminar</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -119,7 +119,7 @@ if ($result) {
     <div class="modal-card">
         <div class="modal-header">
             <h3>Registrar Salida</h3>
-            <button class="btn btn-secondary" onclick="closeSalidaModal()">Cerrar</button>
+            <button class="btn btn-secondary" id="close-modal-btn">Cerrar</button>
         </div>
         <div id="salida-details">
             <!-- Los detalles se cargarán aquí dinámicamente -->
@@ -142,7 +142,7 @@ if ($result) {
                 <input type="number" id="monto" name="monto" step="0.01" min="0" required>
             </div>
             <div style="text-align: right;">
-                <button class="btn btn-secondary" type="button" onclick="closeSalidaModal()">Cancelar</button>
+                <button class="btn btn-secondary" type="button" id="cancel-salida-btn">Cancelar</button>
                 <button class="btn btn-success" type="submit">Registrar Salida y Pago</button>
             </div>
         </form>
@@ -156,6 +156,84 @@ if ($result) {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+// Definir funciones globales antes del DOMContentLoaded
+window.registrarSalida = function(idRegistro) {
+    // En una implementación real, aquí se cargarían los detalles del registro
+    document.getElementById('salida-id-registro').value = idRegistro;
+    
+    // Calcular monto automáticamente (ejemplo básico)
+    const tiempoEstimado = 1; // horas
+    const tarifaPorHora = 6000; // COP
+    const monto = tiempoEstimado * tarifaPorHora;
+    document.getElementById('monto').value = monto;
+    
+    // Mostrar modal
+    document.getElementById('salida-modal').style.display = 'flex';
+};
+
+window.eliminarRegistro = function(idRegistro) {
+    Swal.fire({
+        title: '¿Eliminar registro?',
+        text: "¿Estás seguro de que deseas eliminar este registro de entrada? Esta acción no se puede deshacer.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e53935',
+        cancelButtonColor: '#666',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Enviar solicitud para eliminar el registro
+            const formData = new FormData();
+            formData.append('accion', 'eliminar_registro');
+            formData.append('id_registro', idRegistro);
+            
+            fetch('../controladores/motosController.php', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        title: '¡Eliminado!',
+                        text: data.message,
+                        icon: 'success',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.message,
+                        icon: 'error',
+                        confirmButtonText: 'Aceptar'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Ocurrió un error al procesar la solicitud.',
+                    icon: 'error',
+                    confirmButtonText: 'Aceptar'
+                });
+            });
+        }
+    });
+};
+
+window.closeSalidaModal = function() {
+    document.getElementById('salida-modal').style.display = 'none';
+};
+
+// Esperar a que el DOM esté completamente cargado
+document.addEventListener('DOMContentLoaded', function() {
     // Datos de motos para búsqueda
     const motosData = <?php echo json_encode($todas_motos); ?>;
     
@@ -165,10 +243,8 @@ if ($result) {
     const selectedMotoInput = document.getElementById('selected-moto');
     const selectedMotoIdInput = document.getElementById('selected-moto-id');
     const submitButton = document.getElementById('submit-entrada');
-    
-    // Variables para almacenar datos de tickets
-    let ultimoTicketEntrada = null;
-    let ultimoTicketSalida = null;
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const cancelSalidaBtn = document.getElementById('cancel-salida-btn');
     
     // Función para filtrar motos
     function filterMotos(query) {
@@ -218,15 +294,17 @@ if ($result) {
     }
     
     // Evento para búsqueda en tiempo real
-    searchInput.addEventListener('input', function() {
-        const query = this.value;
-        const results = filterMotos(query);
-        showSearchResults(results);
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value;
+            const results = filterMotos(query);
+            showSearchResults(results);
+        });
+    }
     
     // Cerrar resultados de búsqueda al hacer clic fuera
     document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        if (searchResults && !searchInput.contains(e.target) && !searchResults.contains(e.target)) {
             searchResults.style.display = 'none';
         }
     });
@@ -275,11 +353,7 @@ if ($result) {
     setInterval(actualizarTiempos, 1000);
     
     // Inicializar tiempos al cargar la página
-    document.addEventListener('DOMContentLoaded', function() {
-        // Ejecutar inmediatamente y luego cada segundo
-        actualizarTiempos();
-        setInterval(actualizarTiempos, 1000);
-    });
+    actualizarTiempos();
     
     // Función para imprimir ticket usando QZ Tray
     function imprimirTicketQZ(datos) {
@@ -441,232 +515,174 @@ if ($result) {
             });
     }
     
-    function registrarSalida(idRegistro) {
-        // En una implementación real, aquí se cargarían los detalles del registro
-        document.getElementById('salida-id-registro').value = idRegistro;
-        
-        // Calcular monto automáticamente (ejemplo básico)
-        const tiempoEstimado = 1; // horas
-        const tarifaPorHora = 6000; // COP
-        const monto = tiempoEstimado * tarifaPorHora;
-        document.getElementById('monto').value = monto;
-        
-        // Mostrar modal
-        document.getElementById('salida-modal').style.display = 'flex';
+    // Asignar eventos a los botones del modal
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', window.closeSalidaModal);
     }
     
-    function eliminarRegistro(idRegistro) {
-        Swal.fire({
-            title: '¿Eliminar registro?',
-            text: "¿Estás seguro de que deseas eliminar este registro de entrada? Esta acción no se puede deshacer.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#e53935',
-            cancelButtonColor: '#666',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Enviar solicitud para eliminar el registro
-                const formData = new FormData();
-                formData.append('accion', 'eliminar_registro');
-                formData.append('id_registro', idRegistro);
-                
-                fetch('../controladores/motosController.php', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        Swal.fire({
-                            title: '¡Eliminado!',
-                            text: data.message,
-                            icon: 'success',
-                            showConfirmButton: false,
-                            timer: 1500
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'Error',
-                            text: data.message,
-                            icon: 'error',
-                            confirmButtonText: 'Aceptar'
-                        });
-                    }
-                })
-                .catch(error => {
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'Ocurrió un error al procesar la solicitud.',
-                        icon: 'error',
-                        confirmButtonText: 'Aceptar'
-                    });
-                });
-            }
-        });
-    }
-    
-    function closeSalidaModal() {
-        document.getElementById('salida-modal').style.display = 'none';
+    if (cancelSalidaBtn) {
+        cancelSalidaBtn.addEventListener('click', window.closeSalidaModal);
     }
     
     // Manejar el envío del formulario de entrada
-    document.getElementById('entrada-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const selectedMotoText = selectedMotoInput.value;
-        if (!selectedMotoText) {
+    const entradaForm = document.getElementById('entrada-form');
+    if (entradaForm) {
+        entradaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const selectedMotoText = selectedMotoInput.value;
+            if (!selectedMotoText) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Por favor seleccione una moto para registrar la entrada.',
+                    icon: 'error',
+                    confirmButtonText: 'Aceptar'
+                });
+                return;
+            }
+            
             Swal.fire({
-                title: 'Error',
-                text: 'Por favor seleccione una moto para registrar la entrada.',
-                icon: 'error',
-                confirmButtonText: 'Aceptar'
-            });
-            return;
-        }
-        
-        Swal.fire({
-            title: '¿Registrar entrada?',
-            text: `¿Deseas registrar la entrada de la moto ${selectedMotoText} al parqueadero?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#15ad4d',
-            cancelButtonColor: '#666',
-            confirmButtonText: 'Sí, registrar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Enviar el formulario
-                const formData = new FormData(this);
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Intentar imprimir ticket automáticamente si hay datos
-                        if (data.ticket_data) {
-                            // Imprimir ticket automáticamente
-                            imprimirTicketEntradaAutomatico(data.ticket_data);
-                            
-                            // Recargar la página después de un breve retraso
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 2000);
+                title: '¿Registrar entrada?',
+                text: `¿Deseas registrar la entrada de la moto ${selectedMotoText} al parqueadero?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#15ad4d',
+                cancelButtonColor: '#666',
+                confirmButtonText: 'Sí, registrar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Enviar el formulario
+                    const formData = new FormData(this);
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Intentar imprimir ticket automáticamente si hay datos
+                            if (data.ticket_data) {
+                                // Imprimir ticket automáticamente
+                                imprimirTicketEntradaAutomatico(data.ticket_data);
+                                
+                                // Recargar la página después de un breve retraso
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            } else {
+                                Swal.fire({
+                                    title: '¡Éxito!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            }
                         } else {
                             Swal.fire({
-                                title: '¡Éxito!',
+                                title: 'Error',
                                 text: data.message,
-                                icon: 'success',
-                                showConfirmButton: false,
-                                timer: 1500
-                            }).then(() => {
-                                window.location.reload();
+                                icon: 'error',
+                                confirmButtonText: 'Aceptar'
                             });
                         }
-                    } else {
+                    })
+                    .catch(error => {
                         Swal.fire({
                             title: 'Error',
-                            text: data.message,
+                            text: 'Ocurrió un error al procesar la solicitud.',
                             icon: 'error',
                             confirmButtonText: 'Aceptar'
                         });
-                    }
-                })
-                .catch(error => {
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'Ocurrió un error al procesar la solicitud.',
-                        icon: 'error',
-                        confirmButtonText: 'Aceptar'
                     });
-                });
-            }
+                }
+            });
         });
-    });
+    }
     
     // Manejar el envío del formulario de salida
-    document.getElementById('salida-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        Swal.fire({
-            title: '¿Registrar salida?',
-            text: "¿Deseas registrar la salida de esta moto y generar el pago?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#15ad4d',
-            cancelButtonColor: '#666',
-            confirmButtonText: 'Sí, registrar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Enviar el formulario
-                const formData = new FormData(this);
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Intentar imprimir ticket automáticamente si hay datos
-                        if (data.ticket_data) {
-                            // Imprimir ticket automáticamente
-                            imprimirTicketSalidaAutomatico(data.ticket_data);
-                            
-                            // Cerrar modal y recargar la página después de un breve retraso
-                            closeSalidaModal();
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 2000);
+    const salidaForm = document.getElementById('salida-form');
+    if (salidaForm) {
+        salidaForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            Swal.fire({
+                title: '¿Registrar salida?',
+                text: "¿Deseas registrar la salida de esta moto y generar el pago?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#15ad4d',
+                cancelButtonColor: '#666',
+                confirmButtonText: 'Sí, registrar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Enviar el formulario
+                    const formData = new FormData(this);
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Intentar imprimir ticket automáticamente si hay datos
+                            if (data.ticket_data) {
+                                // Imprimir ticket automáticamente
+                                imprimirTicketSalidaAutomatico(data.ticket_data);
+                                
+                                // Cerrar modal y recargar la página después de un breve retraso
+                                window.closeSalidaModal();
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            } else {
+                                Swal.fire({
+                                    title: '¡Éxito!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => {
+                                    window.closeSalidaModal();
+                                    window.location.reload();
+                                });
+                            }
                         } else {
                             Swal.fire({
-                                title: '¡Éxito!',
+                                title: 'Error',
                                 text: data.message,
-                                icon: 'success',
-                                showConfirmButton: false,
-                                timer: 1500
-                            }).then(() => {
-                                closeSalidaModal();
-                                window.location.reload();
+                                icon: 'error',
+                                confirmButtonText: 'Aceptar'
                             });
                         }
-                    } else {
+                    })
+                    .catch(error => {
                         Swal.fire({
                             title: 'Error',
-                            text: data.message,
+                            text: 'Ocurrió un error al procesar la solicitud.',
                             icon: 'error',
                             confirmButtonText: 'Aceptar'
                         });
-                    }
-                })
-                .catch(error => {
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'Ocurrió un error al procesar la solicitud.',
-                        icon: 'error',
-                        confirmButtonText: 'Aceptar'
                     });
-                });
-            }
+                }
+            });
         });
-    });
-    
-    // Mostrar mensajes de éxito o error si existen
-    <?php if (isset($_SESSION['mensaje_exito'])): ?>
+    }
+});
+
+// Mostrar mensajes de éxito o error si existen
+<?php if (isset($_SESSION['mensaje_exito'])): ?>
+    document.addEventListener('DOMContentLoaded', function() {
         Swal.fire({
             title: '¡Éxito!',
             text: '<?php echo addslashes($_SESSION['mensaje_exito']); ?>',
@@ -675,9 +691,11 @@ if ($result) {
             timer: 1500
         });
         <?php unset($_SESSION['mensaje_exito']); ?>
-    <?php endif; ?>
-    
-    <?php if (isset($_SESSION['mensaje_error'])): ?>
+    });
+<?php endif; ?>
+
+<?php if (isset($_SESSION['mensaje_error'])): ?>
+    document.addEventListener('DOMContentLoaded', function() {
         Swal.fire({
             title: 'Error',
             text: '<?php echo addslashes($_SESSION['mensaje_error']); ?>',
@@ -685,5 +703,6 @@ if ($result) {
             confirmButtonText: 'Aceptar'
         });
         <?php unset($_SESSION['mensaje_error']); ?>
-    <?php endif; ?>
+    });
+<?php endif; ?>
 </script>
