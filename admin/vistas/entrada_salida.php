@@ -2,6 +2,9 @@
 // Incluir conexión a la base de datos
 require_once __DIR__ . '/../../db/conexion.php';
 
+// Establecer la zona horaria de Colombia
+date_default_timezone_set('America/Bogota');
+
 // Obtener motos activas (sin salida registrada) - adaptado a la nueva estructura
 $motos_activas = [];
 $sql = "SELECT r.IdRegistro, r.FechaHoraEntrada, m.IdMoto, m.Placa, m.Marca, m.Modelo, m.Color, 
@@ -312,20 +315,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para actualizar los contadores de tiempo en tiempo real
     function actualizarTiempos() {
         const timeDisplays = document.querySelectorAll('[id^="time-"]');
-        const ahora = new Date();
         
         timeDisplays.forEach(display => {
             const fechaEntrada = display.getAttribute('data-entrada');
-            const entrada = new Date(fechaEntrada);
+            
+            // Parsear la fecha de entrada considerando la zona horaria de Colombia
+            const entrada = new Date(fechaEntrada.replace(' ', 'T'));
+            
+            // Ajustar manualmente la zona horaria a Colombia (UTC-5)
+            const entradaColombia = new Date(entrada.getTime() + (5 * 60 * 60 * 1000));
+            
+            // Obtener la hora actual en Colombia
+            const ahora = new Date();
+            const ahoraColombia = new Date(ahora.getTime() + (5 * 60 * 60 * 1000));
             
             // Verificar que la fecha de entrada sea válida
-            if (isNaN(entrada.getTime())) {
+            if (isNaN(entradaColombia.getTime())) {
                 display.textContent = '00:00:00';
                 return;
             }
             
             // Calcular diferencia en milisegundos
-            const diffMs = ahora - entrada;
+            const diffMs = ahoraColombia - entradaColombia;
             
             // Verificar que la diferencia no sea negativa
             if (diffMs < 0) {

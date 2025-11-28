@@ -4,7 +4,7 @@
         <button id="btnConectarQZ" class="btn btn-primary" style="background-color: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">
             🔌 Conectar Impresora
         </button>
-        <button id="btnImprimirTest" class="btn btn-secondary" style="background-color: #2196F3; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;" disabled>
+        <button id="btnImprimirTest" class="btn btn-secondary" style="background-color: #2196F3; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; display:none;" disabled>
             📄 Imprimir Ticket de Prueba
         </button>
         <div id="qz-status" style="padding: 10px; font-weight: bold;">

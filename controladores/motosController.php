@@ -11,6 +11,9 @@ require_once __DIR__ . '/../db/conexion.php';
 require_once __DIR__ . '/../librerias/ImpresionTicket.php';
 require_once __DIR__ . '/../librerias/ImpresionQZTray.php';
 
+// Establecer la zona horaria de Colombia
+date_default_timezone_set('America/Bogota');
+
 function redirect_with($type, $message) {
     $_SESSION[$type] = $message;
     // Conservar parámetros de búsqueda y página si vinieron en REFERER
@@ -289,7 +292,7 @@ try {
                 'telefono' => $moto['TelefonoPropietario'] ?? 'N/A',
                 'direccion' => $moto['DireccionPropietario'] ?? 'N/A',
                 'id_registro' => $id_registro,
-                'fecha_hora' => date('d/m/Y H:i:s')
+                'fecha_hora' => date('d/m/Y H:i:s') // Formato para Colombia
             ];
         }
         
@@ -401,8 +404,8 @@ try {
             
             $datos_ticket = [
                 'tipo' => 'salida',
-                'fecha_entrada' => date('d/m/Y H:i', strtotime($registro['FechaHoraEntrada'])),
-                'fecha_salida' => date('d/m/Y H:i', strtotime($registro['FechaHoraSalida'])),
+                'fecha_entrada' => date('d/m/Y H:i', strtotime($registro['FechaHoraEntrada'])), // Formato para Colombia
+                'fecha_salida' => date('d/m/Y H:i', strtotime($registro['FechaHoraSalida'])),   // Formato para Colombia
                 'tiempo' => $tiempo,
                 'placa' => $registro['Placa'] ?? 'N/A',
                 'marca' => $registro['Marca'] ?? 'N/A',
